@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#6366f1">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>יוצר המקצבים המקצועי</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>יוצר מקצבים</h1>
+    <div id="grid" class="grid"></div>
+    <div class="controls">
+      <button id="playBtn">נגן / עצור</button>
+      <div>
+        <label>מהירות (BPM): <span id="bpmVal">120</span></label>
+        <input type="range" id="bpm" min="60" max="200" value="120">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const gridEl = document.getElementById('grid');
+    const steps = 8;
+    let isActive = new Array(steps).fill(false);
+    let currentStep = 0;
+    let isPlaying = false;
+    let bpm = 120;
+
+    for (let i = 0; i < steps; i++) {
+      const div = document.createElement('div');
+      div.className = 'step';
+      div.onclick = () => {
+        isActive[i] = !isActive[i];
+        div.classList.toggle('active');
+      };
+      gridEl.appendChild(div);
+    }
+
+    function playSound() {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 440;
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function step() {
+      if (!isPlaying) return;
+      document.querySelectorAll('.step').forEach((el, i) => {
+        el.classList.toggle('playing', i === currentStep);
+      });
+      if (isActive[currentStep]) playSound();
+      currentStep = (currentStep + 1) % steps;
+      setTimeout(step, 60000 / (bpm * 2));
+    }
+
+    document.getElementById('playBtn').onclick = () => {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      isPlaying = !isPlaying;
+      if (isPlaying) step();
+    };
+
+    document.getElementById('bpm').oninput = (e) => {
+      bpm = e.target.value;
+      document.getElementById('bpmVal').innerText = bpm;
+    };
+  </script>
+</body>
+</html>
